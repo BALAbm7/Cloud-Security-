@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Security — Attack Architecture Map</title>
+<style>
+:root{
+  --bg:#0b1220;
+  --bg-raised:#101a2e;
+  --bg-card:#0f1830;
+  --line:#1f2d4a;
+  --text:#cdd8ee;
+  --text-dim:#8192b5;
+  --text-faint:#546184;
+  --sky:#5ec4ff;
+  --sky-dim:#2d6fa3;
+  --amber:#ffb454;
+  --amber-dim:#8a5f24;
+  --red:#ff6b6b;
+  --green:#7ee3b5;
+  --purple:#c792ea;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--sky-dim);color:#fff;}
+
+a{color:var(--sky);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* subtle grid backdrop, cloud-provider region feel */
+.sky{
+  position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(94,196,255,0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(255,180,84,0.05), transparent),
+    linear-gradient(var(--bg), var(--bg));
+}
+.sky::after{
+  content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size:64px 64px;
+  opacity:0.25;
+  mask-image:radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 70%);
+}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px;}
+
+/* ---------- HEADER / HERO ---------- */
+header.top{
+  position:sticky;top:0;z-index:40;
+  background:rgba(11,18,32,0.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar{
+  max-width:1180px;margin:0 auto;padding:14px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);font-size:15px;}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--sky);box-shadow:0 0 10px var(--sky);}
+.topnav{display:flex;gap:22px;flex-wrap:wrap;}
+.topnav a{color:var(--text-dim);font-size:13.5px;font-weight:500;}
+.topnav a:hover{color:var(--sky);text-decoration:none;}
+
+.hero{padding:88px 0 56px;}
+.hero .kicker{color:var(--amber);font-family:var(--mono);font-size:13px;margin-bottom:18px;}
+.hero h1{
+  font-size:clamp(34px,5vw,56px);
+  line-height:1.08;
+  margin:0 0 20px;
+  letter-spacing:-0.015em;
+  max-width:16ch;
+}
+.hero h1 span{color:var(--sky);}
+.hero p.lead{
+  max-width:62ch;color:var(--text-dim);font-size:17px;margin-bottom:34px;
+}
+.hero .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:56px;}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 20px;border-radius:7px;font-size:14px;font-weight:600;
+  border:1px solid var(--line);
+}
+.btn.primary{background:var(--sky);color:#06101f;border-color:var(--sky);}
+.btn.primary:hover{background:#7fd0ff;text-decoration:none;}
+.btn.ghost{color:var(--text);background:transparent;}
+.btn.ghost:hover{border-color:var(--sky);text-decoration:none;color:var(--sky);}
+
+/* provider strip */
+.providers{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+}
+.provider{background:var(--bg-raised);padding:20px 22px;}
+.provider .name{font-family:var(--mono);font-size:12.5px;color:var(--text-faint);margin-bottom:6px;}
+.provider .big{font-size:22px;font-weight:700;color:var(--text);}
+.provider .big em{font-style:normal;color:var(--sky);}
+
+/* ---------- SECTION SHELL ---------- */
+section{padding:72px 0;border-top:1px solid var(--line);}
+section:first-of-type{border-top:none;}
+.section-head{margin-bottom:38px;max-width:68ch;}
+.section-head .tag{font-family:var(--mono);font-size:12.5px;color:var(--amber);margin-bottom:10px;}
+.section-head h2{font-size:28px;margin:0 0 10px;letter-spacing:-0.01em;}
+.section-head p{color:var(--text-dim);font-size:15px;margin:0;}
+
+/* ---------- ATTACK CHAIN LEGEND ---------- */
+.chain{
+  display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+}
+.chain .stage{
+  flex:1 1 150px;padding:18px 16px;border-right:1px solid var(--line);background:var(--bg-raised);
+}
+.chain .stage:last-child{border-right:none;}
+.chain .stage .n{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-bottom:6px;}
+.chain .stage .t{font-size:14px;font-weight:600;}
+.chain .stage.recon{border-top:3px solid #7ee3b5;}
+.chain .stage.access{border-top:3px solid #5ec4ff;}
+.chain .stage.cred{border-top:3px solid #c792ea;}
+.chain .stage.priv{border-top:3px solid #ffb454;}
+.chain .stage.lateral{border-top:3px solid #ff9f6b;}
+.chain .stage.persist{border-top:3px solid #ff6b6b;}
+.chain .stage.impact{border-top:3px solid #ff4d6d;}
+
+/* ---------- CARD GRID ---------- */
+.grid{display:grid;gap:14px;}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:860px){.grid.cols-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:620px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--bg-card);border:1px solid var(--line);border-radius:10px;
+  padding:20px 20px 18px;
+}
+.card .eyebrow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+.badge{
+  font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:4px;
+  border:1px solid var(--line);color:var(--text-dim);
+}
+.badge.aws{color:#ffb454;border-color:var(--amber-dim);}
+.badge.azure{color:#5ec4ff;border-color:var(--sky-dim);}
+.badge.gcp{color:#7ee3b5;border-color:#2c6e4c;}
+.badge.multi{color:var(--purple);border-color:#5c3f73;}
+.badge.crit{color:var(--red);border-color:#7a2d2d;}
+.card h3{font-size:15.5px;margin:0 0 8px;}
+.card .sub{font-family:var(--mono);font-size:11.5px;color:var(--text-faint);margin:-4px 0 10px;}
+.card ul{margin:0;padding-left:18px;color:var(--text-dim);font-size:13.5px;}
+.card ul li{margin-bottom:5px;}
+.card p{color:var(--text-dim);font-size:13.5px;margin:0 0 8px;}
+.card code{font-family:var(--mono);font-size:12px;color:var(--amber);background:rgba(255,180,84,0.08);padding:1px 5px;border-radius:4px;}
+
+/* ---------- FLOW CHAINS (horizontal step pills) ---------- */
+.flow{border:1px solid var(--line);border-radius:10px;padding:18px 20px;background:var(--bg-card);margin-bottom:12px;}
+.flow .title{font-weight:600;font-size:14.5px;margin-bottom:12px;}
+.flow .steps{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.flow .step{
+  font-family:var(--mono);font-size:12px;color:var(--text);
+  background:var(--bg-raised);border:1px solid var(--line);border-radius:6px;padding:6px 10px;
+}
+.flow .arrow{color:var(--text-faint);font-size:13px;}
+
+/* ---------- TABLE ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+thead th{
+  text-align:left;font-family:var(--mono);font-size:11px;color:var(--text-faint);
+  padding:12px 16px;border-bottom:1px solid var(--line);background:var(--bg-raised);
+  white-space:nowrap;
+}
+tbody td{padding:11px 16px;border-bottom:1px solid var(--line);color:var(--text-dim);vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+tbody td.k{color:var(--text);font-weight:600;white-space:nowrap;}
+tbody td code{font-family:var(--mono);color:var(--sky);font-size:12px;}
+
+/* ---------- CHECKLIST ---------- */
+.checklist{border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+.cl-row{display:grid;grid-template-columns:140px 1fr 260px;gap:16px;padding:13px 18px;border-bottom:1px solid var(--line);}
+.cl-row:last-child{border-bottom:none;}
+.cl-row.head{background:var(--bg-raised);font-family:var(--mono);font-size:11px;color:var(--text-faint);}
+.cl-row .cat{font-weight:600;font-size:13px;color:var(--sky);}
+.cl-row .mis{font-size:13px;color:var(--text-dim);}
+.cl-row .risk{font-size:12.5px;color:var(--text-faint);}
+@media(max-width:760px){.cl-row{grid-template-columns:1fr;gap:4px;}.cl-row.head{display:none;}}
+
+/* ---------- CODE BLOCK ---------- */
+pre{
+  background:var(--bg-raised);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;color:var(--text-dim);
+  line-height:1.65;
+}
+pre .c-key{color:var(--sky);}
+pre .c-val{color:var(--amber);}
+pre .c-note{color:var(--text-faint);}
+
+/* ---------- NOISE METER ---------- */
+.noise-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);}
+.noise-row:last-child{border-bottom:none;}
+.noise-row .label{width:220px;flex:0 0 auto;font-size:13.5px;color:var(--text);}
+.meter{flex:1;height:6px;background:var(--bg-raised);border-radius:4px;overflow:hidden;}
+.meter i{display:block;height:100%;border-radius:4px;}
+.meter i.low{width:25%;background:var(--green);}
+.meter i.med{width:58%;background:var(--amber);}
+.meter i.high{width:92%;background:var(--red);}
+.noise-row .lvl{width:50px;flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--text-faint);text-align:right;}
+
+/* ---------- FOOTER ---------- */
+footer{border-top:1px solid var(--line);padding:40px 0 60px;}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
+footer p{color:var(--text-faint);font-size:12.5px;margin:0;}
+
+/* toc side rail (desktop only) */
+.jumpto{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-top:10px;}
+.jumpto a{color:var(--text-faint);margin-right:14px;}
+.jumpto a:hover{color:var(--sky);}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+
+<header class="top">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> Cloud Attack Architecture Map</div>
+    <nav class="topnav">
+      <a href="#basics">Basics</a>
+      <a href="#iam">IAM Abuse</a>
+      <a href="#chains">Attack Chains</a>
+      <a href="#containers">Containers</a>
+      <a href="#serverless">Serverless</a>
+      <a href="#cicd">CI/CD</a>
+      <a href="#storage">Storage</a>
+      <a href="#detect">Detection</a>
+      <a href="#cves">CVE Watch</a>
+      <a href="#checklist">Checklist</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="kicker">// AWS · Azure · GCP — offense and defense reference</div>
+    <h1>How attackers move through <span>cloud infrastructure</span>, one misconfiguration at a time</h1>
+    <p class="lead">A working map of cloud attack paths — identity abuse, metadata service pivots, container escapes, serverless exploitation, and CI/CD supply-chain compromise — paired with the detections and controls that catch each one.</p>
+    <div class="ctas">
+      <a class="btn primary" href="#chains">Jump to attack chains</a>
+      <a class="btn ghost" href="#detect">Jump to detection</a>
+    </div>
+    <div class="providers">
+      <div class="provider"><div class="name">AWS</div><div class="big"><em>IAM</em> · metadata · Lambda</div></div>
+      <div class="provider"><div class="name">AZURE</div><div class="big"><em>Entra ID</em> · Managed Identity · Functions</div></div>
+      <div class="provider"><div class="name">GCP</div><div class="big"><em>IAM</em> · service accounts · Cloud Run</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="chains-legend">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Attack lifecycle</div>
+      <h2>Seven stages, every cloud</h2>
+      <p>The stage names differ from on-prem AD, but the shape is the same — each stage below links to the techniques further down the page.</p>
+    </div>
+    <div class="chain">
+      <div class="stage recon"><div class="n">01</div><div class="t">Recon</div></div>
+      <div class="stage access"><div class="n">02</div><div class="t">Initial access</div></div>
+      <div class="stage cred"><div class="n">03</div><div class="t">Credential access</div></div>
+      <div class="stage priv"><div class="n">04</div><div class="t">Privilege escalation</div></div>
+      <div class="stage lateral"><div class="n">05</div><div class="t">Lateral movement</div></div>
+      <div class="stage persist"><div class="n">06</div><div class="t">Persistence</div></div>
+      <div class="stage impact"><div class="n">07</div><div class="t">Impact / exfil</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="basics">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Fundamentals</div>
+      <h2>Cloud identity, in three dialects</h2>
+      <p>Every cloud attack path ultimately runs through an identity primitive. Know the vocabulary before the techniques make sense.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">AWS</span></div>
+        <h3>IAM — users, roles, policies</h3>
+        <div class="sub">Account → IAM → STS</div>
+        <ul>
+          <li><code>sts:AssumeRole</code> is the trust primitive — cross-account access runs through it</li>
+          <li>Identity-based policies on principals, resource-based policies on resources (S3, KMS, Lambda)</li>
+          <li><code>iam:PassRole</code> + a compute service = the single most common privesc primitive in AWS</li>
+          <li>Instance metadata service (IMDS) hands out temporary creds to anything that can reach <code>169.254.169.254</code></li>
+          <li>Policy evaluation: explicit deny always wins, otherwise any allow at any layer (identity, resource, SCP, permission boundary) is required to pass</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Azure</span></div>
+        <h3>Entra ID — RBAC + Managed Identity</h3>
+        <div class="sub">Tenant → Subscription → Resource Group</div>
+        <ul>
+          <li>Azure RBAC controls resources; Entra ID roles control the directory itself — attackers conflate them, defenders shouldn't</li>
+          <li>Managed Identities (system or user-assigned) are Azure's answer to IMDS — reachable at <code>169.254.169.254/metadata/identity</code></li>
+          <li>Service principals + app registrations are the automation identity layer — often over-permissioned and rarely rotated</li>
+          <li><code>Owner</code> or <code>Contributor</code> + a VM/Function = role assignment write → impersonate the resource's identity</li>
+          <li>Conditional Access evaluates per sign-in — token theft and device-code phishing both sidestep it</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">GCP</span></div>
+        <h3>IAM — service accounts rule everything</h3>
+        <div class="sub">Org → Folder → Project</div>
+        <ul>
+          <li>Service accounts are both identities and resources — you can grant a user permission to <em>act as</em> one</li>
+          <li><code>iam.serviceAccounts.actAs</code> / <code>getAccessToken</code> is GCP's version of <code>PassRole</code></li>
+          <li>Metadata server at <code>metadata.google.internal</code> serves SA tokens to any workload on the VM/GKE node</li>
+          <li>Roles are bundles of permissions; primitive roles (Owner/Editor/Viewer) are blunt and still common in older projects</li>
+          <li>Org Policy constraints are the GCP equivalent of SCPs — frequently unset at the org root</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="iam">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Identity abuse</div>
+      <h2>Privilege escalation paths</h2>
+      <p>Cloud privesc is rarely a software bug — it's a legitimate permission used in an order its grantor didn't picture.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">AWS</span><span class="badge crit">High value</span></div>
+        <h3>PassRole + service launch</h3>
+        <p>Holding <code>iam:PassRole</code> plus permission to launch EC2, Lambda, or Glue lets you attach a privileged role to a resource you control, then pull its temporary credentials.</p>
+        <ul>
+          <li>Enumerate: which roles can this principal pass? Which launch actions does it hold?</li>
+          <li>Classic chain: <code>PassRole</code> → <code>lambda:CreateFunction</code> → invoke → steal creds from the function's execution environment</li>
+          <li>Tools: <code>Pacu</code>, <code>PMapper</code>, <code>cloudsplaining</code> for static policy graphing</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">AWS</span></div>
+        <h3>Policy / permission-boundary edit</h3>
+        <p>Any principal with <code>iam:CreatePolicyVersion</code>, <code>iam:AttachUserPolicy</code>, or write access on its own permission boundary can self-escalate directly.</p>
+        <ul>
+          <li>~20 known IAM privesc vectors cataloged by Rhino Security Labs — still the reference list</li>
+          <li><code>iam:PutUserPolicy</code> on self = instant admin if unrestricted</li>
+          <li>Detect: CloudTrail <code>PutUserPolicy</code> / <code>AttachRolePolicy</code> from a principal that shouldn't touch IAM</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">AWS</span></div>
+        <h3>Confused deputy via resource policy</h3>
+        <p>A resource policy (S3 bucket, SQS queue, Lambda) that trusts a role without a source condition lets any account using that role reach the resource — including one that isn't the intended caller.</p>
+        <ul>
+          <li>Mitigation: <code>aws:SourceArn</code> / <code>aws:SourceAccount</code> condition keys on every cross-service trust</li>
+          <li>Common in S3 bucket policies written to "just work" across accounts</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Azure</span><span class="badge crit">High value</span></div>
+        <h3>Managed Identity token theft</h3>
+        <p>Code execution on any VM, App Service, or Function with a Managed Identity attached can request a token for that identity directly from the metadata endpoint — no credential needed.</p>
+        <ul>
+          <li><code>curl -H "Metadata:true" "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2024-02-01&resource=https://management.azure.com/"</code></li>
+          <li>SSRF on an app with a Managed Identity = instant token exfil</li>
+          <li>Tools: <code>ROADtools</code>, <code>Stormspotter</code>, <code>AzureHound</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Azure</span></div>
+        <h3>Role assignment write</h3>
+        <p><code>Microsoft.Authorization/roleAssignments/write</code> on a scope lets a principal grant itself (or a controlled identity) Owner at that scope — the Azure equivalent of self-granted IAM policies.</p>
+        <ul>
+          <li>Often bundled inside custom roles meant only for "assign reader access"</li>
+          <li>Chain: Contributor on a VM → attach a user-assigned Managed Identity with Owner → extract its token</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Azure</span></div>
+        <h3>App registration / service principal abuse</h3>
+        <p>Owning an app registration lets you add credentials (client secret or certificate) to it directly — if that app has elevated Graph or RBAC permissions, you inherit them silently.</p>
+        <ul>
+          <li><code>Application.ReadWrite.All</code> Graph scope = add yourself as owner on any app, then add a secret</li>
+          <li>Dormant high-privilege service principals are a common finding in access reviews</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">GCP</span><span class="badge crit">High value</span></div>
+        <h3>actAs + service account impersonation</h3>
+        <p>A principal with <code>iam.serviceAccounts.actAs</code> on a service account can deploy a resource that runs as it — or call <code>generateAccessToken</code> directly if that permission is also granted.</p>
+        <ul>
+          <li>Chain: Editor on a project → deploy a Cloud Function as a privileged SA → invoke → exfil token</li>
+          <li>Tools: <code>GCPwn</code>, <code>G-Scout</code>, <code>Cartography</code> for IAM graph mapping</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">GCP</span></div>
+        <h3>Primitive role sprawl</h3>
+        <p>Legacy <code>roles/editor</code> grants carry hundreds of permissions including most of IAM — a single over-broad grant from early project setup often outlives every later hardening pass.</p>
+        <ul>
+          <li>Editor includes <code>iam.serviceAccounts.actAs</code> on most SAs by default</li>
+          <li>Audit: <code>gcloud projects get-iam-policy</code> + flag any primitive role bindings</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">GCP</span></div>
+        <h3>Metadata server SSRF</h3>
+        <p>Any SSRF-capable app on a GCE instance or GKE node can read the attached service account's token from <code>metadata.google.internal</code> without authentication — the GCP analog of IMDS abuse.</p>
+        <ul>
+          <li><code>curl -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"</code></li>
+          <li>GKE nodes without Workload Identity expose the <em>node's</em> SA to every pod on it</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="chains">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Connective tissue</div>
+      <h2>Attack flow chains</h2>
+      <p>Individual primitives rarely matter alone — these are the chains that turn a small finding into account takeover.</p>
+    </div>
+
+    <div class="flow">
+      <div class="title">SSRF → IMDS → IAM role → lateral account takeover (AWS)</div>
+      <div class="steps">
+        <span class="step">App-layer SSRF</span><span class="arrow">→</span>
+        <span class="step">request 169.254.169.254</span><span class="arrow">→</span>
+        <span class="step">IMDSv1 role creds</span><span class="arrow">→</span>
+        <span class="step">enumerate permissions</span><span class="arrow">→</span>
+        <span class="step">PassRole / S3 read</span><span class="arrow">→</span>
+        <span class="step">pivot account</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">Public S3 write → static site takeover → credential harvest</div>
+      <div class="steps">
+        <span class="step">bucket ACL/policy public-write</span><span class="arrow">→</span>
+        <span class="step">overwrite hosted JS</span><span class="arrow">→</span>
+        <span class="step">inject credential-stealing script</span><span class="arrow">→</span>
+        <span class="step">visitor session/token capture</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">Leaked CI secret → registry push → supply-chain compromise</div>
+      <div class="steps">
+        <span class="step">secret in repo / CI logs</span><span class="arrow">→</span>
+        <span class="step">registry push creds</span><span class="arrow">→</span>
+        <span class="step">poison base image</span><span class="arrow">→</span>
+        <span class="step">downstream builds pull it</span><span class="arrow">→</span>
+        <span class="step">RCE in consuming environments</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">Container escape → node compromise → cluster-wide pivot (K8s)</div>
+      <div class="steps">
+        <span class="step">privileged / hostPath pod</span><span class="arrow">→</span>
+        <span class="step">break out to node</span><span class="arrow">→</span>
+        <span class="step">read kubelet creds</span><span class="arrow">→</span>
+        <span class="step">list secrets cluster-wide</span><span class="arrow">→</span>
+        <span class="step">cloud SA token on node</span><span class="arrow">→</span>
+        <span class="step">pivot to cloud control plane</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">Overprivileged Lambda role → event injection → data exfil</div>
+      <div class="steps">
+        <span class="step">find function with broad role</span><span class="arrow">→</span>
+        <span class="step">trigger via S3/API GW event</span><span class="arrow">→</span>
+        <span class="step">malicious payload parsed</span><span class="arrow">→</span>
+        <span class="step">function's creds reused</span><span class="arrow">→</span>
+        <span class="step">reach downstream data store</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">Managed Identity SSRF → Graph token → tenant-wide read (Azure)</div>
+      <div class="steps">
+        <span class="step">SSRF on App Service</span><span class="arrow">→</span>
+        <span class="step">metadata/identity endpoint</span><span class="arrow">→</span>
+        <span class="step">MSI token for Graph</span><span class="arrow">→</span>
+        <span class="step">enumerate users/apps/mail</span><span class="arrow">→</span>
+        <span class="step">token replay elsewhere in tenant</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">GKE Workload Identity gap → pod to project takeover</div>
+      <div class="steps">
+        <span class="step">pod without Workload Identity binding</span><span class="arrow">→</span>
+        <span class="step">inherits node default SA</span><span class="arrow">→</span>
+        <span class="step">read node SA token from metadata</span><span class="arrow">→</span>
+        <span class="step">node SA often has Editor</span><span class="arrow">→</span>
+        <span class="step">project-level compromise</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="title">OIDC trust misconfig → GitHub Actions → cloud role assumption</div>
+      <div class="steps">
+        <span class="step">OIDC trust policy too broad</span><span class="arrow">→</span>
+        <span class="step">any repo/branch can assume role</span><span class="arrow">→</span>
+        <span class="step">fork PR triggers workflow</span><span class="arrow">→</span>
+        <span class="step">workflow assumes cloud role</span><span class="arrow">→</span>
+        <span class="step">attacker-controlled code gets cloud creds</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="containers">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Runtime</div>
+      <h2>Container & Kubernetes attacks</h2>
+      <p>The orchestration layer sits between workload and cloud — a weak boundary here reaches both.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Privileged pod escape</h3>
+        <p>A pod running with <code>privileged: true</code> or a mounted <code>hostPath</code> of <code>/</code> can chroot or mount the host filesystem directly — full node compromise from a single manifest flaw.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Exposed kubelet API</h3>
+        <p>Kubelet's read-only port (10255) or unauthenticated 10250 lets an attacker on the pod network list pods/secrets or execute commands directly via <code>/run</code> and <code>/exec</code> endpoints.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Overpermissive RBAC</h3>
+        <p>A ServiceAccount bound to <code>cluster-admin</code> for convenience turns any compromise of that pod into full cluster control — the single most common finding in K8s audits.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Exposed dashboard / etcd</h3>
+        <p>An internet-reachable Kubernetes Dashboard or unauthenticated etcd (port 2379) hands over cluster secrets and workload control with no exploit required.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Malicious admission webhook / image</h3>
+        <p>A compromised registry or unpinned <code>:latest</code> tag lets an attacker swap an image between build and deploy — the cluster pulls and runs it trustingly.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">K8s</span></div>
+        <h3>Secrets as env vars</h3>
+        <p>Secrets injected as environment variables are readable by any process in the container and often leak into crash dumps, logs, and <code>/proc/[pid]/environ</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="serverless">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Event-driven compute</div>
+      <h2>Serverless attack surface</h2>
+      <p>No server to patch doesn't mean no attack surface — the function's identity and its triggers are the new perimeter.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">Lambda</span></div>
+        <h3>Over-privileged execution role</h3>
+        <p>Functions are routinely granted broad roles during development and never trimmed — a single injected payload inherits everything the role can do.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">Lambda</span></div>
+        <h3>Dependency / layer poisoning</h3>
+        <p>A compromised Lambda Layer or a typosquatted package pulled at build time executes with the function's full IAM role on every invocation.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">Lambda</span></div>
+        <h3>Event-source injection</h3>
+        <p>Functions triggered by S3, SQS, or API Gateway often trust the event payload structure — malicious input (deserialization, path traversal, SSRF) reaches application logic without any auth step.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Functions</span></div>
+        <h3>Function key leakage</h3>
+        <p>Function-level and host-level keys grant invoke access and sometimes admin API access — frequently hardcoded in client apps or leaked in logs.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">Cloud Run / Functions</span></div>
+        <h3>Unauthenticated invoker</h3>
+        <p>Cloud Run services deployed with <code>--allow-unauthenticated</code> for convenience during testing are a common finding left in production, exposing the service's attached SA to the internet.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge multi">All</span></div>
+        <h3>Cold-start credential caching</h3>
+        <p>Credentials cached in a warm execution environment can persist across invocations from different tenants of the same function if isolation assumptions are wrong — rare, but high impact when found.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cicd">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Build pipeline</div>
+      <h2>CI/CD & software supply chain</h2>
+      <p>The pipeline holds more privilege than the production environment it deploys to — attackers increasingly target the build, not the runtime.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <h3>OIDC trust policy too broad</h3>
+        <p>A cloud role trust policy scoped to an entire GitHub org instead of a specific repo/branch lets any workflow — including one in a forked PR — assume it.</p>
+      </div>
+      <div class="card">
+        <h3>Secrets in pipeline logs</h3>
+        <p>Build logs that echo environment variables or command output leak cloud credentials, registry tokens, and signing keys to anyone with log read access.</p>
+      </div>
+      <div class="card">
+        <h3>Self-hosted runner compromise</h3>
+        <p>A self-hosted CI runner persists state between jobs — one malicious job can plant a backdoor that every subsequent job on that runner inherits.</p>
+      </div>
+      <div class="card">
+        <h3>Dependency confusion</h3>
+        <p>Publishing a public package matching an internal package's name can trick misconfigured build tooling into pulling the attacker's version instead.</p>
+      </div>
+      <div class="card">
+        <h3>Unsigned artifact promotion</h3>
+        <p>Without artifact signing and provenance (SLSA, Sigstore/cosign), nothing stops a compromised registry step from substituting a malicious build between stages.</p>
+      </div>
+      <div class="card">
+        <h3>Terraform state exposure</h3>
+        <p>State files stored in a misconfigured backend bucket often contain plaintext secrets and full resource topology — a complete attack map handed over for free.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="storage">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Data layer</div>
+      <h2>Storage & data exposure</h2>
+      <p>Still the most common finding in every cloud security assessment, and still the one with the simplest fix.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge aws">S3</span></div>
+        <h3>Public bucket / public ACL</h3>
+        <p>Block Public Access disabled at the bucket or account level, combined with a permissive bucket policy, exposes objects directly — still found via simple bucket-name guessing.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge azure">Blob</span></div>
+        <h3>Anonymous container access</h3>
+        <p>Containers set to "Blob" or "Container" public access level serve data with no authentication — SAS tokens with no expiry compound the exposure.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge gcp">GCS</span></div>
+        <h3>allUsers / allAuthenticatedUsers IAM binding</h3>
+        <p>Granting <code>allUsers</code> read on a bucket is the GCP equivalent of a public S3 bucket — easy to set during a demo, easy to forget to remove.</p>
+      </div>
+      <div class="card">
+        <h3>Unencrypted snapshots shared publicly</h3>
+        <p>EBS snapshots, Azure managed disk snapshots, and GCP disk images marked shareable across accounts leak full filesystem contents, including credentials at rest.</p>
+      </div>
+      <div class="card">
+        <h3>Database exposed to 0.0.0.0/0</h3>
+        <p>RDS, Azure SQL, and Cloud SQL instances left reachable from any IP rely entirely on credential strength — a single leaked password becomes direct data access.</p>
+      </div>
+      <div class="card">
+        <h3>Backup target neglect</h3>
+        <p>Backup vaults and cross-region replicas are often excluded from the same monitoring and access review applied to primary data stores.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="detect">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Blue team</div>
+      <h2>Detection signal by provider</h2>
+      <p>Every technique above leaves a log entry somewhere — these are the sources that catch it.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Log source</th><th>What it detects</th><th>Key event / field</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="k">AWS</td><td>CloudTrail</td><td>IAM policy changes, role assumption, console login</td><td><code>PutUserPolicy</code>, <code>AssumeRole</code>, <code>ConsoleLogin</code></td></tr>
+          <tr><td class="k">AWS</td><td>GuardDuty</td><td>IMDS credential exfil, crypto-mining, unusual API calls</td><td><code>UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration</code></td></tr>
+          <tr><td class="k">AWS</td><td>VPC Flow Logs</td><td>Lateral movement, unexpected egress</td><td>REJECT entries to unusual ports/IPs</td></tr>
+          <tr><td class="k">AWS</td><td>S3 Access Logs / CloudTrail data events</td><td>Bucket enumeration, mass object GET</td><td><code>GetObject</code> volume spikes from new principal</td></tr>
+          <tr><td class="k">Azure</td><td>Activity Log</td><td>Role assignment writes, resource deletion</td><td><code>Microsoft.Authorization/roleAssignments/write</code></td></tr>
+          <tr><td class="k">Azure</td><td>Entra ID Sign-in Logs</td><td>Device code phishing, impossible travel, legacy auth</td><td>Risky sign-in, conditional access failure</td></tr>
+          <tr><td class="k">Azure</td><td>Defender for Cloud</td><td>Managed Identity token misuse, exposed resources</td><td>Alert: anomalous token request pattern</td></tr>
+          <tr><td class="k">GCP</td><td>Cloud Audit Logs (Admin Activity)</td><td>IAM binding changes, SA key creation</td><td><code>SetIamPolicy</code>, <code>google.iam.admin.v1.CreateServiceAccountKey</code></td></tr>
+          <tr><td class="k">GCP</td><td>Data Access logs</td><td>GCS object reads, BigQuery exports</td><td>High-volume <code>storage.objects.get</code></td></tr>
+          <tr><td class="k">GCP</td><td>VPC Flow Logs / Firewall Insights</td><td>Lateral movement across projects</td><td>Unexpected internal traffic patterns</td></tr>
+          <tr><td class="k">Kubernetes</td><td>Audit logs</td><td>RBAC escalation, exec into pods, secret reads</td><td><code>create pods/exec</code>, <code>get secrets</code> by unusual SA</td></tr>
+          <tr><td class="k">CI/CD</td><td>Pipeline / workflow run logs</td><td>Secret exposure, unexpected job source (fork)</td><td>Workflow triggered from untrusted <code>pull_request_target</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="noise">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// OPSEC — for purple teams</div>
+      <h2>Noise level by technique</h2>
+      <p>What's quiet, what trips an alert immediately — useful for prioritizing detections, not just attacks.</p>
+    </div>
+    <div class="noise-row"><div class="label">IMDS token read (same host)</div><div class="meter"><i class="low"></i></div><div class="lvl">LOW</div></div>
+    <div class="noise-row"><div class="label">Read-only enumeration (list/describe/get)</div><div class="meter"><i class="low"></i></div><div class="lvl">LOW</div></div>
+    <div class="noise-row"><div class="label">Role assumption via valid trust policy</div><div class="meter"><i class="med"></i></div><div class="lvl">MED</div></div>
+    <div class="noise-row"><div class="label">New IAM policy / role assignment write</div><div class="meter"><i class="med"></i></div><div class="lvl">MED</div></div>
+    <div class="noise-row"><div class="label">Cross-region API calls from new principal</div><div class="meter"><i class="med"></i></div><div class="lvl">MED</div></div>
+    <div class="noise-row"><div class="label">Service account / access key creation</div><div class="meter"><i class="high"></i></div><div class="lvl">HIGH</div></div>
+    <div class="noise-row"><div class="label">Mass S3/GCS object download</div><div class="meter"><i class="high"></i></div><div class="lvl">HIGH</div></div>
+    <div class="noise-row"><div class="label">Security group / firewall rule opened to 0.0.0.0/0</div><div class="meter"><i class="high"></i></div><div class="lvl">HIGH</div></div>
+    <div class="noise-row"><div class="label">CloudTrail / audit logging disabled</div><div class="meter"><i class="high"></i></div><div class="lvl">HIGH</div></div>
+  </div>
+</section>
+
+<section id="cves">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Keep this section current</div>
+      <h2>CVE / advisory watch</h2>
+      <p>A living list — this file is a template. Replace entries below as new cloud-platform advisories land; don't let the list go stale.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="eyebrow"><span class="badge crit">Template</span></div>
+        <h3>Add: platform / component</h3>
+        <p>CVE ID · CVSS score · one line on the flaw.</p>
+        <ul>
+          <li>Affected versions / services</li>
+          <li>Exploitation status (PoC public / ITW)</li>
+          <li>Patch or mitigation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge crit">Template</span></div>
+        <h3>Add: platform / component</h3>
+        <p>CVE ID · CVSS score · one line on the flaw.</p>
+        <ul>
+          <li>Affected versions / services</li>
+          <li>Exploitation status (PoC public / ITW)</li>
+          <li>Patch or mitigation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="eyebrow"><span class="badge crit">Template</span></div>
+        <h3>Add: platform / component</h3>
+        <p>CVE ID · CVSS score · one line on the flaw.</p>
+        <ul>
+          <li>Affected versions / services</li>
+          <li>Exploitation status (PoC public / ITW)</li>
+          <li>Patch or mitigation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="checklist">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Audit</div>
+      <h2>Common misconfigurations checklist</h2>
+      <p>The findings that show up in nearly every cloud assessment, organized for a quick pass.</p>
+    </div>
+    <div class="checklist">
+      <div class="cl-row head"><div>Category</div><div>Misconfiguration</div><div>Risk / impact</div></div>
+      <div class="cl-row"><div class="cat">IAM</div><div class="mis">Wildcard (<code>*</code>) actions/resources on identity policies</div><div class="risk">Unbounded blast radius on compromise</div></div>
+      <div class="cl-row"><div class="cat">IAM</div><div class="mis">Long-lived access keys instead of federated/role-based auth</div><div class="risk">Credentials outlive the need, hard to revoke everywhere</div></div>
+      <div class="cl-row"><div class="cat">IAM</div><div class="mis">MFA not enforced on privileged / root identities</div><div class="risk">Single-factor compromise = full account</div></div>
+      <div class="cl-row"><div class="cat">Network</div><div class="mis">Security group / NSG / firewall rule open to 0.0.0.0/0</div><div class="risk">Direct internet exposure of internal services</div></div>
+      <div class="cl-row"><div class="cat">Network</div><div class="mis">IMDSv1 enabled instead of IMDSv2 (AWS)</div><div class="risk">SSRF becomes instant credential theft</div></div>
+      <div class="cl-row"><div class="cat">Storage</div><div class="mis">Public bucket/container/allUsers binding</div><div class="risk">Unauthenticated data exposure</div></div>
+      <div class="cl-row"><div class="cat">Storage</div><div class="mis">Default encryption-at-rest not enforced</div><div class="risk">Stolen disk/snapshot is directly readable</div></div>
+      <div class="cl-row"><div class="cat">Logging</div><div class="mis">CloudTrail / Activity Log / Audit Log not enabled org-wide</div><div class="risk">Blind spot for the entire detection stack</div></div>
+      <div class="cl-row"><div class="cat">Logging</div><div class="mis">Logs stored in the same account they monitor</div><div class="risk">Compromise of that account can erase the evidence</div></div>
+      <div class="cl-row"><div class="cat">Kubernetes</div><div class="mis">Default ServiceAccount bound to cluster-admin</div><div class="risk">Any pod compromise = cluster compromise</div></div>
+      <div class="cl-row"><div class="cat">Kubernetes</div><div class="mis">No NetworkPolicy — flat pod-to-pod networking</div><div class="risk">Lateral movement needs no further exploit</div></div>
+      <div class="cl-row"><div class="cat">CI/CD</div><div class="mis">OIDC trust policy scoped to an org, not repo/branch</div><div class="risk">Any workflow in the org can assume the cloud role</div></div>
+      <div class="cl-row"><div class="cat">CI/CD</div><div class="mis">Secrets passed as plaintext env vars in pipeline</div><div class="risk">Leaks into logs, crash dumps, child processes</div></div>
+      <div class="cl-row"><div class="cat">Serverless</div><div class="mis">Function execution role scoped broader than its actual calls</div><div class="risk">Injected payload inherits unused permissions</div></div>
+      <div class="cl-row"><div class="cat">Secrets</div><div class="mis">Secrets Manager / Key Vault / Secret Manager not used — hardcoded instead</div><div class="risk">Credentials live in source control history forever</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="arsenal">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="tag">// Reference</div>
+      <h2>Tool arsenal</h2>
+      <p>Grouped by what they're for — enumeration, exploitation, and the offline graph tools that turn findings into attack paths.</p>
+    </div>
+<pre>ENUMERATION
+├── <span class="c-key">ScoutSuite</span>          // multi-cloud config auditor (AWS/Azure/GCP/Alibaba/OCI)
+├── <span class="c-key">Prowler</span>              // AWS/Azure/GCP CIS benchmark + compliance scanning
+├── <span class="c-key">CloudMapper</span>          // AWS network + asset visualization
+├── <span class="c-key">PMapper</span>              // AWS IAM privilege-escalation graphing
+├── <span class="c-key">ROADrecon</span> / <span class="c-key">AzureHound</span>  // Entra ID / Azure AD enumeration for BloodHound-style graphs
+├── <span class="c-key">GCPwn</span> / <span class="c-key">G-Scout</span>        // GCP IAM + asset enumeration
+└── <span class="c-key">Cartography</span>          // Neo4j-backed multi-cloud asset graph
+
+EXPLOITATION
+├── <span class="c-key">Pacu</span>                 // AWS exploitation framework (modular, privesc-aware)
+├── <span class="c-key">Stormspotter</span>          // Azure attack-path graphing
+├── <span class="c-key">MicroBurst</span>            // Azure enumeration + exploitation toolkit
+├── <span class="c-key">GCP IAM Privilege Escalation</span> scripts // known-vector automation
+└── <span class="c-key">kube-hunter</span> / <span class="c-key">kube-bench</span>  // Kubernetes attack surface + CIS benchmark
+
+CONTAINER / K8s
+├── <span class="c-key">Trivy</span>                 // image + IaC vulnerability scanning
+├── <span class="c-key">Falco</span>                 // runtime threat detection (syscall-based)
+├── <span class="c-key">kubeaudit</span>              // Kubernetes manifest security audit
+└── <span class="c-key">Peirates</span>               // Kubernetes penetration testing toolkit
+
+CI/CD & SUPPLY CHAIN
+├── <span class="c-key">gitleaks</span> / <span class="c-key">trufflehog</span>   // secret scanning in repos & history
+├── <span class="c-key">cosign</span> / <span class="c-key">Sigstore</span>       // artifact signing + provenance (SLSA)
+└── <span class="c-key">Semgrep</span>               // IaC + application static analysis
+
+DETECTION / BLUE TEAM
+├── <span class="c-key">GuardDuty</span> / <span class="c-key">Defender for Cloud</span> / <span class="c-key">Security Command Center</span>  // native threat detection
+├── <span class="c-key">Sentinel</span> / <span class="c-key">Chronicle</span> / <span class="c-key">OpenSearch</span>  // SIEM for cloud log aggregation
+└── <span class="c-key">cloud-custodian</span>       // policy-as-code for continuous compliance
+</pre>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Reference material for defensive security education — build and extend locally. Keep the CVE Watch section current.</p>
+    <p>Cloud Security — Attack Architecture Map</p>
+  </div>
+</footer>
+
+</body>
+</html>
