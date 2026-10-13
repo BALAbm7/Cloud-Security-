@@ -36,12 +36,6 @@ open index.html   # or just double-click it
 
 The **CVE Watch** section (`#cves`) ships as a template — swap in real advisories as they land so the page doesn't go stale. Everything else is plain HTML/CSS in `index.html`; edit directly, no build tooling required.
 
-## Customizing
 
-- Colors and type scale are CSS custom properties at the top of `index.html` (`:root { ... }`) — change the palette in one place.
-- Each content section is a `<section id="...">` block with its own `.grid` of `.card` elements — copy a card to add a new technique.
-- The top nav (`.topnav`) and the `<section>` anchors are kept in sync by `id` — add both together when you add a section.
 
-## License
 
-MIT — use, fork, and extend freely. See `LICENSE`.
